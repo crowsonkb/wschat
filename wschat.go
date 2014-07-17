@@ -13,8 +13,8 @@ var flagAddress string
 var flagAssetDir string
 
 func init() {
-	flag.StringVar(&flagAddress, "address", ":80",
-		"The HTTP address to bind to (e.g. ':80'.")
+	flag.StringVar(&flagAddress, "address", ":8080",
+		"The HTTP address to bind to (e.g. ':8080'.")
 	flag.StringVar(&flagAssetDir, "asset_dir", "",
 		"The location of the static assets directory.")
 }
