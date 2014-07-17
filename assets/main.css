@@ -3,7 +3,9 @@ body {
 }
 
 #messages {
+	font-family: monospace;
 	margin-top: 1em;
+	white-space: pre;
 }
 
 #messages p {

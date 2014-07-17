@@ -3,6 +3,7 @@ package main
 import (
 	"code.google.com/p/go.net/websocket"
 	"flag"
+	"fmt"
 	"go/build"
 	"log"
 	"net"
@@ -26,7 +27,20 @@ func init() {
 		"The location of the static assets directory.")
 }
 
-type Message string
+type Message struct {
+	Content string
+	User    string
+	Time    time.Time
+}
+
+func (msg *Message) String() string {
+	return fmt.Sprintf("%02d:%02d:%02d <%s> %s",
+		msg.Time.Hour(),
+		msg.Time.Minute(),
+		msg.Time.Second(),
+		msg.User,
+		msg.Content)
+}
 
 type Broadcaster struct {
 	sinks []chan Message
@@ -87,7 +101,7 @@ func HandleChat(ws *websocket.Conn) {
 			for cond := true; cond; {
 				select {
 				case msg := <-sink:
-					if websocket.Message.Send(ws, string(msg)) != nil {
+					if websocket.Message.Send(ws, msg.String()) != nil {
 						return
 					}
 				default:
@@ -107,7 +121,11 @@ func HandleChat(ws *websocket.Conn) {
 				}
 			}
 		}
-		br.Broadcast(Message(input))
+		br.Broadcast(Message{
+			Content: input,
+			User:    ws.Request().RemoteAddr,
+			Time:    time.Now(),
+		})
 	}
 }
 
