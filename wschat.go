@@ -97,10 +97,10 @@ func HandleChat(ws *websocket.Conn) {
 	defer br.DelSink(sink)
 
 	go func() {
+		defer br.DelSink(sink)
 		for {
 			var input string
 			if websocket.Message.Receive(ws, &input) != nil {
-				br.DelSink(sink)
 				return
 			}
 			br.Broadcast(Message{
