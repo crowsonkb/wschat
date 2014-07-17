@@ -84,7 +84,7 @@ func HandleChat(ws *websocket.Conn) {
 		for input == "" {
 			// Handle queued messages from other users each time through this
 			// loop.
-		HandleQueue:
+		DoQueue:
 			for {
 				select {
 				case msg := <-sink:
@@ -92,7 +92,7 @@ func HandleChat(ws *websocket.Conn) {
 						return
 					}
 				default:
-					break HandleQueue
+					break DoQueue
 				}
 			}
 
