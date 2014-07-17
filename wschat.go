@@ -120,6 +120,7 @@ func HandleChat(ws *websocket.Conn) {
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile)
 	flag.Parse()
+
 	if flagAssetsDir == "" {
 		pkg, err := build.Default.Import("github.com/crowsonkb/wschat", "", 0)
 		if err != nil {
@@ -134,6 +135,7 @@ func main() {
 	if !fi.IsDir() {
 		log.Fatal("assets_dir is not a directory")
 	}
+
 	br = NewBroadcaster()
 	http.Handle("/", http.FileServer(http.Dir(flagAssetsDir)))
 	http.Handle("/chat", websocket.Handler(HandleChat))
