@@ -82,14 +82,18 @@ func HandleChat(ws *websocket.Conn) {
 	for {
 		input := ""
 		for input == "" {
-			// Handle one queued message from other users each time through
-			// this loop.
-			select {
-			case msg := <-sink:
-				if websocket.Message.Send(ws, string(msg)) != nil {
-					return
+			// Handle queued messages from other users each time through this
+			// loop.
+		HandleQueue:
+			for {
+				select {
+				case msg := <-sink:
+					if websocket.Message.Send(ws, string(msg)) != nil {
+						return
+					}
+				default:
+					break HandleQueue
 				}
-			default:
 			}
 
 			// Handle one incoming message from the current user; if more than
