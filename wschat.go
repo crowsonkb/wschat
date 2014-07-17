@@ -133,7 +133,7 @@ func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile)
 	flag.Parse()
 	if flagAssetDir == "" {
-		pkg, err := build.Default.Import("wschat", "", 0)
+		pkg, err := build.Default.Import("github.com/crowsonkb/wschat", "", 0)
 		if err != nil {
 			log.Fatal("could not locate assets directory")
 		}
