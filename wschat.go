@@ -84,15 +84,14 @@ func HandleChat(ws *websocket.Conn) {
 		for input == "" {
 			// Handle queued messages from other users each time through this
 			// loop.
-		DoQueue:
-			for {
+			for cond := true; cond; {
 				select {
 				case msg := <-sink:
 					if websocket.Message.Send(ws, string(msg)) != nil {
 						return
 					}
 				default:
-					break DoQueue
+					cond = false
 				}
 			}
 
