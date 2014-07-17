@@ -19,12 +19,16 @@ var br *Broadcaster
 
 var flagAddress string
 var flagAssetsDir string
+var flagTLSCert string
+var flagTLSKey string
 
 func init() {
 	flag.StringVar(&flagAddress, "address", ":8080",
 		"The HTTP address to bind to (e.g. ':8080'.")
 	flag.StringVar(&flagAssetsDir, "assets_dir", "",
 		"The location of the static assets directory.")
+	flag.StringVar(&flagTLSCert, "tls_cert", "", "The TLS cert file.")
+	flag.StringVar(&flagTLSKey, "tls_key", "", "The TLS key file.")
 }
 
 type Message struct {
@@ -149,5 +153,13 @@ func main() {
 	br = NewBroadcaster()
 	http.Handle("/", http.FileServer(http.Dir(flagAssetsDir)))
 	http.Handle("/chat", websocket.Handler(HandleChat))
-	log.Fatal(http.ListenAndServe(flagAddress, nil))
+	switch {
+	case flagTLSCert == "" && flagTLSKey == "":
+		log.Fatal(http.ListenAndServe(flagAddress, nil))
+	case flagTLSCert != "" && flagTLSKey != "":
+		log.Fatal(http.ListenAndServeTLS(
+			flagAddress, flagTLSCert, flagTLSKey, nil))
+	default:
+		log.Fatal("tls_cert and tls_key must both be provided")
+	}
 }
