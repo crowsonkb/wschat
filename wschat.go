@@ -18,12 +18,12 @@ const broadcasterQueueDepth = 10
 var br *Broadcaster
 
 var flagAddress string
-var flagAssetDir string
+var flagAssetsDir string
 
 func init() {
 	flag.StringVar(&flagAddress, "address", ":8080",
 		"The HTTP address to bind to (e.g. ':8080'.")
-	flag.StringVar(&flagAssetDir, "asset_dir", "",
+	flag.StringVar(&flagAssetsDir, "assets_dir", "",
 		"The location of the static assets directory.")
 }
 
@@ -132,22 +132,22 @@ func HandleChat(ws *websocket.Conn) {
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile)
 	flag.Parse()
-	if flagAssetDir == "" {
+	if flagAssetsDir == "" {
 		pkg, err := build.Default.Import("github.com/crowsonkb/wschat", "", 0)
 		if err != nil {
 			log.Fatal("could not locate assets directory")
 		}
-		flagAssetDir = pkg.Dir + "/assets"
+		flagAssetsDir = pkg.Dir + "/assets"
 	}
-	fi, err := os.Stat(flagAssetDir)
+	fi, err := os.Stat(flagAssetsDir)
 	if err != nil {
 		log.Fatal(err)
 	}
 	if !fi.IsDir() {
-		log.Fatal("asset_dir is not a directory")
+		log.Fatal("assets_dir is not a directory")
 	}
 	br = NewBroadcaster()
-	http.Handle("/", http.FileServer(http.Dir(flagAssetDir)))
+	http.Handle("/", http.FileServer(http.Dir(flagAssetsDir)))
 	http.Handle("/chat", websocket.Handler(HandleChat))
 	log.Fatal(http.ListenAndServe(flagAddress, nil))
 }
