@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"go/build"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"sync"
@@ -97,39 +96,24 @@ func HandleChat(ws *websocket.Conn) {
 	sink := br.NewSink()
 	defer br.DelSink(sink)
 
-	for {
-		input := ""
-		for input == "" {
-			// Handle queued messages from other users each time through this
-			// loop.
-			for i := 0; i < broadcasterQueueDepth; i++ {
-				select {
-				case msg := <-sink:
-					if websocket.Message.Send(ws, msg.String()) != nil {
-						return
-					}
-				default:
-					i = broadcasterQueueDepth
-				}
-			}
-
-			// Handle one incoming message from the current user; if more than
-			// 200 milliseconds pass without receiving one, loop back and check
-			// if there are queued messages from other users.
-			if ws.SetReadDeadline(time.Now().Add(200*time.Millisecond)) != nil {
+	go func() {
+		for {
+			var input string
+			if websocket.Message.Receive(ws, &input) != nil {
+				br.DelSink(sink)
 				return
 			}
-			if err := websocket.Message.Receive(ws, &input); err != nil {
-				if err, ok := err.(*net.OpError); !ok || !err.Timeout() {
-					return
-				}
-			}
+			br.Broadcast(Message{
+				Content: input,
+				User:    ws.Request().RemoteAddr,
+				Time:    time.Now()})
 		}
-		br.Broadcast(Message{
-			Content: input,
-			User:    ws.Request().RemoteAddr,
-			Time:    time.Now(),
-		})
+	}()
+
+	for msg := range sink {
+		if websocket.Message.Send(ws, msg.String()) != nil {
+			return
+		}
 	}
 }
 
