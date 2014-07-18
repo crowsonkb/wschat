@@ -12,9 +12,11 @@ import (
 	"time"
 )
 
-const broadcasterQueueDepth = 10
+const BroadcasterQueueDepth = 10
+const LogSize = 30
 
 var br *Broadcaster
+var lgr *Logger
 
 var flagAddress string
 var flagAssetsDir string
@@ -57,7 +59,7 @@ func NewBroadcaster() *Broadcaster {
 }
 
 func (br *Broadcaster) NewSink() chan Message {
-	sink := make(chan Message, broadcasterQueueDepth)
+	sink := make(chan Message, BroadcasterQueueDepth)
 	br.lock.Lock()
 	defer br.lock.Unlock()
 	br.sinks = append(br.sinks, sink)
@@ -89,6 +91,41 @@ func (br *Broadcaster) Broadcast(msg Message) {
 	}
 }
 
+type Logger struct {
+	msgs []Message
+	lock sync.Mutex
+	sink chan Message
+}
+
+func NewLogger() *Logger {
+	var lgr Logger
+	lgr.msgs = make([]Message, 0, LogSize)
+	lgr.sink = br.NewSink()
+	go lgr.doLogging()
+	return &lgr
+}
+
+func (lgr *Logger) doLogging() {
+	for msg := range lgr.sink {
+		lgr.lock.Lock()
+		if len(lgr.msgs) < cap(lgr.msgs) {
+			lgr.msgs = append(lgr.msgs, msg)
+		} else {
+			copy(lgr.msgs[:len(lgr.msgs)-1], lgr.msgs[1:])
+			lgr.msgs[len(lgr.msgs)-1] = msg
+		}
+		lgr.lock.Unlock()
+	}
+}
+
+func (lgr *Logger) GetLog() []Message {
+	lgr.lock.Lock()
+	defer lgr.lock.Unlock()
+	msgs := make([]Message, len(lgr.msgs))
+	copy(msgs, lgr.msgs)
+	return msgs
+}
+
 func HandleChat(ws *websocket.Conn) {
 	remoteAddr := ws.Request().RemoteAddr
 	log.Printf("Connection opened: %s", remoteAddr)
@@ -110,6 +147,12 @@ func HandleChat(ws *websocket.Conn) {
 				Time:    time.Now()})
 		}
 	}()
+
+	for _, msg := range lgr.GetLog() {
+		if websocket.Message.Send(ws, msg.String()) != nil {
+			return
+		}
+	}
 
 	for msg := range sink {
 		if websocket.Message.Send(ws, msg.String()) != nil {
@@ -138,6 +181,7 @@ func main() {
 	}
 
 	br = NewBroadcaster()
+	lgr = NewLogger()
 	http.Handle("/", http.FileServer(http.Dir(flagAssetsDir)))
 	http.Handle("/chat", websocket.Handler(HandleChat))
 	switch {
