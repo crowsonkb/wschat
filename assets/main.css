@@ -1,13 +1,30 @@
-body {
-	margin: 0 8px;
+#controls {
+	background: linear-gradient(#eef, #ccf);
+	border-bottom: 1px solid #88f;
+	padding-bottom: 4px;
+	padding-left: 8px;
+	position: fixed;
+	width: 100%;
+}
+
+#controls h1 {
+	margin: 0.33em 0;
+}
+
+#input {
+	font-family: monospace;
 }
 
 #messages {
 	font-family: monospace;
-	margin-top: 1em;
+	padding: 100px 8px 8px 8px;
 	white-space: pre;
 }
 
 #messages p {
 	margin: 0;
+}
+
+#messages p.error {
+	color: red;
 }
