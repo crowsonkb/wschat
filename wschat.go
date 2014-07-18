@@ -90,8 +90,9 @@ func (br *Broadcaster) Broadcast(msg Message) {
 }
 
 func HandleChat(ws *websocket.Conn) {
-	log.Printf("Connection opened: %s", ws.Request().RemoteAddr)
-	defer log.Printf("Connection closed: %s", ws.Request().RemoteAddr)
+	remoteAddr := ws.Request().RemoteAddr
+	log.Printf("Connection opened: %s", remoteAddr)
+	defer log.Printf("Connection closed: %s", remoteAddr)
 
 	sink := br.NewSink()
 	defer br.DelSink(sink)
@@ -105,7 +106,7 @@ func HandleChat(ws *websocket.Conn) {
 			}
 			br.Broadcast(Message{
 				Content: input,
-				User:    ws.Request().RemoteAddr,
+				User:    remoteAddr,
 				Time:    time.Now()})
 		}
 	}()
