@@ -2,6 +2,7 @@ package main
 
 import (
 	"code.google.com/p/go.net/websocket"
+	"expvar"
 	"flag"
 	"fmt"
 	"go/build"
@@ -23,6 +24,10 @@ var flagAssetsDir string
 var flagTLSCert string
 var flagTLSKey string
 
+var varClients *expvar.Int
+var varMsgsIn *expvar.Int
+var varMsgsOut *expvar.Int
+
 func init() {
 	flag.StringVar(&flagAddress, "address", ":8080",
 		"The HTTP address to bind to (e.g. ':8080'.")
@@ -30,6 +35,10 @@ func init() {
 		"The location of the static assets directory.")
 	flag.StringVar(&flagTLSCert, "tls_cert", "", "The TLS cert file.")
 	flag.StringVar(&flagTLSKey, "tls_key", "", "The TLS key file.")
+
+	varClients = expvar.NewInt("Clients")
+	varMsgsIn = expvar.NewInt("MsgsIn")
+	varMsgsOut = expvar.NewInt("MsgsOut")
 }
 
 type Message struct {
@@ -63,6 +72,7 @@ func (br *Broadcaster) NewSink() chan Message {
 	br.lock.Lock()
 	defer br.lock.Unlock()
 	br.sinks = append(br.sinks, sink)
+	varClients.Set(int64(len(br.sinks)))
 	return sink
 }
 
@@ -74,6 +84,7 @@ func (br *Broadcaster) DelSink(sink chan Message) {
 		if br.sinks[i] == sink {
 			close(br.sinks[i])
 			br.sinks = append(br.sinks[:i], br.sinks[i+1:]...)
+			varClients.Set(int64(len(br.sinks)))
 			return
 		}
 	}
@@ -141,6 +152,7 @@ func HandleChat(ws *websocket.Conn) {
 			if websocket.Message.Receive(ws, &input) != nil {
 				return
 			}
+			varMsgsIn.Add(1)
 			br.Broadcast(Message{
 				Content: input,
 				User:    remoteAddr,
@@ -152,12 +164,14 @@ func HandleChat(ws *websocket.Conn) {
 		if websocket.Message.Send(ws, msg.String()) != nil {
 			return
 		}
+		varMsgsOut.Add(1)
 	}
 
 	for msg := range sink {
 		if websocket.Message.Send(ws, msg.String()) != nil {
 			return
 		}
+		varMsgsOut.Add(1)
 	}
 }
 
