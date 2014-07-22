@@ -25,6 +25,7 @@ var flagTLSCert string
 var flagTLSKey string
 
 var varClients *expvar.Int
+var varMsgsDrop *expvar.Int
 var varMsgsIn *expvar.Int
 var varMsgsOut *expvar.Int
 
@@ -37,6 +38,7 @@ func init() {
 	flag.StringVar(&flagTLSKey, "tls_key", "", "The TLS key file.")
 
 	varClients = expvar.NewInt("Clients")
+	varMsgsDrop = expvar.NewInt("MsgsDrop")
 	varMsgsIn = expvar.NewInt("MsgsIn")
 	varMsgsOut = expvar.NewInt("MsgsOut")
 }
@@ -98,6 +100,7 @@ func (br *Broadcaster) Broadcast(msg Message) {
 		select {
 		case sink <- msg:
 		default:
+			varMsgsDrop.Add(1)
 		}
 	}
 }
