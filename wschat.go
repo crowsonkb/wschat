@@ -13,21 +13,25 @@ import (
 	"time"
 )
 
-const BroadcasterQueueDepth = 10
-const LogSize = 30
+const (
+	BroadcasterQueueDepth = 10
+	LogSize               = 30
+)
 
-var br *Broadcaster
-var lgr *Logger
+var (
+	br  *Broadcaster
+	lgr *Logger
 
-var flagAddress string
-var flagAssetsDir string
-var flagTLSCert string
-var flagTLSKey string
+	flagAddress   string
+	flagAssetsDir string
+	flagTLSCert   string
+	flagTLSKey    string
 
-var varClients *expvar.Int
-var varMsgsDrop *expvar.Int
-var varMsgsIn *expvar.Int
-var varMsgsOut *expvar.Int
+	varClients  *expvar.Int
+	varMsgsDrop *expvar.Int
+	varMsgsIn   *expvar.Int
+	varMsgsOut  *expvar.Int
+)
 
 func init() {
 	flag.StringVar(&flagAddress, "address", ":8080",
