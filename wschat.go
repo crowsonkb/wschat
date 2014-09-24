@@ -182,6 +182,11 @@ func HandleChat(ws *websocket.Conn) {
 	}
 }
 
+func exit(v interface{}) {
+	fmt.Fprintln(os.Stderr, v)
+	os.Exit(1)
+}
+
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile)
 	flag.Parse()
@@ -189,16 +194,16 @@ func main() {
 	if flagAssetsDir == "" {
 		pkg, err := build.Default.Import("github.com/crowsonkb/wschat", "", 0)
 		if err != nil {
-			log.Fatal("could not locate assets directory")
+			exit("could not locate assets directory")
 		}
 		flagAssetsDir = pkg.Dir + "/assets"
 	}
 	fi, err := os.Stat(flagAssetsDir)
 	if err != nil {
-		log.Fatal(err)
+		exit(err)
 	}
 	if !fi.IsDir() {
-		log.Fatal("-assets-dir is not a directory")
+		exit("-assets-dir is not a directory")
 	}
 
 	br = NewBroadcaster()
@@ -212,6 +217,6 @@ func main() {
 		log.Fatal(http.ListenAndServeTLS(
 			flagAddress, flagTLSCert, flagTLSKey, nil))
 	default:
-		log.Fatal("-tls-cert and -tls-key must both be provided")
+		exit("-tls-cert and -tls-key must both be provided")
 	}
 }
