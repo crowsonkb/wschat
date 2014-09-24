@@ -36,10 +36,10 @@ var (
 func init() {
 	flag.StringVar(&flagAddress, "address", ":8080",
 		"The HTTP address to bind to (e.g. ':8080'.")
-	flag.StringVar(&flagAssetsDir, "assets_dir", "",
+	flag.StringVar(&flagAssetsDir, "assets-dir", "",
 		"The location of the static assets directory.")
-	flag.StringVar(&flagTLSCert, "tls_cert", "", "The TLS cert file.")
-	flag.StringVar(&flagTLSKey, "tls_key", "", "The TLS key file.")
+	flag.StringVar(&flagTLSCert, "tls-cert", "", "The TLS cert file.")
+	flag.StringVar(&flagTLSKey, "tls-key", "", "The TLS key file.")
 
 	varClients = expvar.NewInt("Clients")
 	varMsgsDrop = expvar.NewInt("MsgsDrop")
@@ -198,7 +198,7 @@ func main() {
 		log.Fatal(err)
 	}
 	if !fi.IsDir() {
-		log.Fatal("assets_dir is not a directory")
+		log.Fatal("-assets-dir is not a directory")
 	}
 
 	br = NewBroadcaster()
@@ -212,6 +212,6 @@ func main() {
 		log.Fatal(http.ListenAndServeTLS(
 			flagAddress, flagTLSCert, flagTLSKey, nil))
 	default:
-		log.Fatal("tls_cert and tls_key must both be provided")
+		log.Fatal("-tls-cert and -tls-key must both be provided")
 	}
 }
