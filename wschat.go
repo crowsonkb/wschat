@@ -1,11 +1,11 @@
 package main
 
 import (
-	"code.google.com/p/go.net/websocket"
 	"expvar"
 	"flag"
 	"fmt"
 	"go/build"
+	"golang.org/x/net/websocket"
 	"log"
 	"net/http"
 	"os"
