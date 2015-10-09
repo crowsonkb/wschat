@@ -21,9 +21,11 @@ const (
 var (
 	br  *Broadcaster
 	lgr *Logger
+	fr  *FileRecorder
 
 	flagAddress   string
 	flagAssetsDir string
+	flagRecording string
 	flagTLSCert   string
 	flagTLSKey    string
 
@@ -38,6 +40,8 @@ func init() {
 		"The HTTP address to bind to (e.g. ':8080'.")
 	flag.StringVar(&flagAssetsDir, "assets-dir", "",
 		"The location of the static assets directory.")
+	flag.StringVar(&flagRecording, "recording", "recording.txt",
+		"The file to record conversations to.")
 	flag.StringVar(&flagTLSCert, "tls-cert", "", "The TLS cert file.")
 	flag.StringVar(&flagTLSKey, "tls-key", "", "The TLS key file.")
 
@@ -144,6 +148,36 @@ func (lgr *Logger) GetLog() []Message {
 	return msgs
 }
 
+type FileRecorder struct {
+	file *os.File
+	sink chan Message
+}
+
+func NewFileRecorder() *FileRecorder {
+	var fr FileRecorder
+	var err error
+	fr.file, err = os.OpenFile(flagRecording, os.O_WRONLY | os.O_APPEND | os.O_CREATE, 0600)
+	if err != nil {
+		exit(err)
+	}
+	fr.sink = br.NewSink()
+	go fr.doRecording()
+	return &fr
+}
+
+func (fr *FileRecorder) doRecording() {
+	for msg := range fr.sink {
+		_, err := fmt.Fprintln(fr.file, msg.String())
+		if err != nil {
+			exit(err)
+		}
+		err = fr.file.Sync()
+		if err != nil {
+			exit(err)
+		}
+	}
+}
+
 func HandleChat(ws *websocket.Conn) {
 	remoteAddr := ws.Request().RemoteAddr
 	log.Printf("Connection opened: %s", remoteAddr)
@@ -208,6 +242,8 @@ func main() {
 
 	br = NewBroadcaster()
 	lgr = NewLogger()
+	fr = NewFileRecorder()
+
 	http.Handle("/", http.FileServer(http.Dir(flagAssetsDir)))
 	http.Handle("/chat", websocket.Handler(HandleChat))
 	switch {
