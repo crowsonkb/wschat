@@ -7,6 +7,7 @@ import (
 	"go/build"
 	"golang.org/x/net/websocket"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"sync"
@@ -22,6 +23,7 @@ var (
 	br  *Broadcaster
 	lgr *Logger
 	fr  *FileRecorder
+	nm  *NickMap
 
 	flagAddress   string
 	flagAssetsDir string
@@ -178,9 +180,37 @@ func (fr *FileRecorder) doRecording() {
 	}
 }
 
+type NickMap struct {
+	m    map[string]string
+	lock sync.Mutex
+}
+
+func NewNickMap() *NickMap {
+	var nm NickMap
+	nm.m = make(map[string]string)
+	return &nm
+}
+
+func (nm *NickMap) GetNick(address string) string {
+	nm.lock.Lock()
+	defer nm.lock.Unlock()
+
+	return nm.m[address]
+}
+
+func (nm *NickMap) GenerateNick(address string) string {
+	nm.lock.Lock()
+	defer nm.lock.Unlock()
+
+	nick := fmt.Sprintf("User%05d", rand.Int31n(100000))
+	nm.m[address] = nick
+	return nick
+}
+
 func HandleChat(ws *websocket.Conn) {
 	remoteAddr := ws.Request().RemoteAddr
-	log.Printf("Connection opened: %s", remoteAddr)
+	nick := nm.GenerateNick(remoteAddr)
+	log.Printf("Connection opened: %s %s", remoteAddr, nick)
 	defer log.Printf("Connection closed: %s", remoteAddr)
 
 	sink := br.NewSink()
@@ -188,6 +218,7 @@ func HandleChat(ws *websocket.Conn) {
 
 	go func() {
 		defer br.DelSink(sink)
+		// TODO: defer remove nick from NickMap here.
 		for {
 			var input string
 			if websocket.Message.Receive(ws, &input) != nil {
@@ -196,7 +227,7 @@ func HandleChat(ws *websocket.Conn) {
 			varMsgsIn.Add(1)
 			br.Broadcast(Message{
 				Content: input,
-				User:    remoteAddr,
+				User:    nm.GetNick(remoteAddr),
 				Time:    time.Now()})
 		}
 	}()
@@ -243,6 +274,7 @@ func main() {
 	br = NewBroadcaster()
 	lgr = NewLogger()
 	fr = NewFileRecorder()
+	nm = NewNickMap()
 
 	http.Handle("/", http.FileServer(http.Dir(flagAssetsDir)))
 	http.Handle("/chat", websocket.Handler(HandleChat))
